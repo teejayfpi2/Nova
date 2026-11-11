@@ -8,6 +8,7 @@
     "dist": "electron-builder --publish never"
   },
   "author": "Ayanlowo Olatunji Ayobami <ayanlowo89@gmail.com> (https://www.linkedin.com/in/olatunjiayanlowo)",
+  "homepage": "https://github.com/teejayfpi2/Nova",
   "license": "MIT",
   "devDependencies": {
     "electron": "^31.0.0",
@@ -17,7 +18,8 @@
     "appId": "ai.nova.desktop",
     "productName": "Nova",
     "files": ["main.js", "preload.js", "agent.js", "renderer/**", "package.json"],
-    "directories": { "output": "dist" },
+    "directories": { "output": "dist", "buildResources": "build" },
+    "icon": "build/icons",
     "mac": { "target": ["dmg", "zip"], "category": "public.app-category.productivity" },
     "win": { "target": ["nsis", "portable"] },
     "linux": { "target": ["AppImage", "deb"], "category": "Utility" }

@@ -1,10 +1,93 @@
 #!/usr/bin/env python3
 """Generate the Nova desktop app (Electron) source files."""
+from __future__ import annotations
+
+import struct
+import zlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent / "desktop"
 
 FILES: dict[str, str] = {}
+
+
+def _png(width: int, height: int, pixels: bytes) -> bytes:
+    """Encode RGBA pixel data as a PNG (no third-party libraries needed)."""
+
+    def chunk(tag: bytes, data: bytes) -> bytes:
+        return (
+            struct.pack(">I", len(data))
+            + tag
+            + data
+            + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
+        )
+
+    raw = b"".join(
+        b"\x00" + pixels[y * width * 4 : (y + 1) * width * 4] for y in range(height)
+    )
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0))
+        + chunk(b"IDAT", zlib.compress(raw, 9))
+        + chunk(b"IEND", b"")
+    )
+
+
+def write_icon(path: Path, size: int = 512) -> None:
+    """Draw the Nova app icon: a dark rounded tile with an accent sparkle.
+
+    Matches the in-app brand (dark navy background, blue ``✦``), so the window,
+    tray and installer all agree. Drawn with 3x supersampling for smooth edges.
+    """
+    bg_top, bg_bot = (16, 21, 42), (11, 15, 26)  # #10152a -> #0b0f1a
+    accent, core = (108, 140, 255), (232, 238, 255)  # #6c8cff, near-white
+    radius = size * 0.22
+    arm = size * 0.30  # sparkle arm length
+    ss = 3  # supersampling factor
+
+    def coverage(fx: float, fy: float) -> tuple[float, float]:
+        """Return (tile_alpha, sparkle_alpha) at a sample point."""
+        # Rounded-rect tile test.
+        cx = min(max(fx, radius), size - radius)
+        cy = min(max(fy, radius), size - radius)
+        in_tile = (fx - cx) ** 2 + (fy - cy) ** 2 <= radius**2 or (
+            radius <= fx <= size - radius or radius <= fy <= size - radius
+        )
+        # Astroid sparkle: |x|^(2/3) + |y|^(2/3) <= a^(2/3).
+        dx, dy = abs(fx - size / 2), abs(fy - size / 2)
+        in_spark = dx ** (2 / 3) + dy ** (2 / 3) <= arm ** (2 / 3)
+        return (1.0 if in_tile else 0.0), (1.0 if in_spark else 0.0)
+
+    px = bytearray()
+    for y in range(size):
+        for x in range(size):
+            tile_hits = spark_hits = 0
+            for sy in range(ss):
+                for sx in range(ss):
+                    t, s = coverage(x + (sx + 0.5) / ss, y + (sy + 0.5) / ss)
+                    tile_hits += t
+                    spark_hits += s
+            n = ss * ss
+            tile = tile_hits / n
+            spark = spark_hits / n
+            if tile == 0:
+                px += b"\x00\x00\x00\x00"
+                continue
+            blend = y / size
+            r = int(bg_top[0] + (bg_bot[0] - bg_top[0]) * blend)
+            g = int(bg_top[1] + (bg_bot[1] - bg_top[1]) * blend)
+            b = int(bg_top[2] + (bg_bot[2] - bg_top[2]) * blend)
+            # Sparkle: accent edges with a brighter core for a glow.
+            sr = int(accent[0] + (core[0] - accent[0]) * spark)
+            sg = int(accent[1] + (core[1] - accent[1]) * spark)
+            sb = int(accent[2] + (core[2] - accent[2]) * spark)
+            r = int(r * (1 - spark) + sr * spark)
+            g = int(g * (1 - spark) + sg * spark)
+            b = int(b * (1 - spark) + sb * spark)
+            px += bytes((r, g, b, int(255 * tile)))
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(_png(size, size, bytes(px)))
 
 FILES["package.json"] = """\
 {
@@ -17,6 +100,7 @@ FILES["package.json"] = """\
     "dist": "electron-builder --publish never"
   },
   "author": "Ayanlowo Olatunji Ayobami <ayanlowo89@gmail.com> (https://www.linkedin.com/in/olatunjiayanlowo)",
+  "homepage": "https://github.com/teejayfpi2/Nova",
   "license": "MIT",
   "devDependencies": {
     "electron": "^31.0.0",
@@ -26,7 +110,8 @@ FILES["package.json"] = """\
     "appId": "ai.nova.desktop",
     "productName": "Nova",
     "files": ["main.js", "preload.js", "agent.js", "renderer/**", "package.json"],
-    "directories": { "output": "dist" },
+    "directories": { "output": "dist", "buildResources": "build" },
+    "icon": "build/icons",
     "mac": { "target": ["dmg", "zip"], "category": "public.app-category.productivity" },
     "win": { "target": ["nsis", "portable"] },
     "linux": { "target": ["AppImage", "deb"], "category": "Utility" }
@@ -638,6 +723,13 @@ def main() -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content)
         print("wrote", path)
+    write_icon(ROOT / "renderer" / "icon.png")
+    print("wrote", ROOT / "renderer" / "icon.png")
+    # electron-builder derives icon sizes from filenames, so ship a directory of
+    # named sizes; a lone PNG is left unsized (hicolor/0x0) by some builds.
+    for s in (16, 32, 48, 64, 128, 256, 512):
+        write_icon(ROOT / "build" / "icons" / f"{s}x{s}.png", size=s)
+    print("wrote", ROOT / "build" / "icons" / "{16..512}.png")
 
 
 if __name__ == "__main__":

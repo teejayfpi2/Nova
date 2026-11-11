@@ -161,16 +161,30 @@ read your notifications.
 
 **Laptop — install the desktop app**
 
+Easiest: grab the installer for your OS from the rolling **`latest`** release
+(`https://github.com/teejayfpi2/Nova/releases/tag/latest`):
+
+| OS | Download |
+| --- | --- |
+| Windows | `Nova Setup 1.0.0.exe` |
+| macOS | `Nova-1.0.0.dmg` |
+| Linux | `Nova-1.0.0.AppImage` (portable) or `nova-desktop_1.0.0_amd64.deb` |
+
+Install it like any normal app. On Linux, make the AppImage executable
+(`chmod +x Nova-1.0.0.AppImage`) and double-click, or `sudo dpkg -i` the `.deb`.
+
+**Or build it yourself.** Installers must be built on the OS you want to target:
+
 ```bash
-cd desktop
-npm install
-npm run dist        # builds a real installer into desktop/dist/
-#   macOS   -> Nova-1.0.0.dmg
-#   Windows -> Nova Setup 1.0.0.exe
-#   Linux   -> Nova-1.0.0.AppImage / nova_1.0.0_amd64.deb
+./scripts/build_desktop.sh          # installers for the current OS -> desktop/dist/
+./scripts/build_desktop.sh --win    # Windows: NSIS installer + portable exe
+./scripts/build_desktop.sh --mac    # macOS: dmg + zip
+./scripts/build_desktop.sh --linux  # Linux: AppImage + deb
 ```
 
-Install that file like any normal app. To just run it from source instead:
+The `Build Desktop Apps` workflow builds all three platforms on every push that
+touches `desktop/**`, uploads them as artifacts, and refreshes the `latest`
+release. To just run it from source instead:
 
 ```bash
 cd desktop && npm install && npm start

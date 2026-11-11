@@ -1,0 +1,103 @@
+name: Build Desktop Apps
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "desktop/**"
+      - "scripts/gen_desktop_sources.py"
+      - "scripts/build_desktop.sh"
+      - ".github/workflows/desktop.yml"
+  pull_request:
+    paths:
+      - "desktop/**"
+      - "scripts/gen_desktop_sources.py"
+      - "scripts/build_desktop.sh"
+      - ".github/workflows/desktop.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Serialize runs per ref so two pushes don't race on the same "latest" release.
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux
+            os: ubuntu-latest
+            platform: --linux
+            artifacts: |
+              desktop/dist/*.AppImage
+              desktop/dist/*.deb
+            release: |
+              desktop/dist/*.AppImage
+              desktop/dist/*.deb
+          - name: Windows
+            os: windows-latest
+            platform: --win
+            artifacts: |
+              desktop/dist/*.exe
+            release: |
+              desktop/dist/*.exe
+          - name: macOS
+            os: macos-latest
+            platform: --mac
+            artifacts: |
+              desktop/dist/*.dmg
+              desktop/dist/*.zip
+            release: |
+              desktop/dist/*.dmg
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        working-directory: desktop
+        run: npm install
+
+      - name: Build the installers
+        working-directory: desktop
+        run: npx electron-builder ${{ matrix.platform }} --publish never
+
+      - name: Show what was built
+        shell: bash
+        run: find desktop/dist -maxdepth 1 -type f \( -name "*.AppImage" -o -name "*.deb" -o -name "*.exe" -o -name "*.dmg" -o -name "*.zip" \) -exec ls -la {} \;
+
+      - name: Upload the installers as build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nova-desktop-${{ matrix.name }}
+          path: ${{ matrix.artifacts }}
+          if-no-files-found: error
+
+      - name: Publish to the rolling "latest" release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Nova latest (debug build)
+          body: |
+            Automatic debug builds of the Nova phone and desktop apps.
+
+            Built from ${{ github.sha }} by GitHub Actions.
+
+            Desktop: install the file for your OS (`.AppImage`/`.deb` on Linux,
+            `.exe` on Windows, `.dmg` on macOS). Signed Android APKs live on the
+            same release — see the `nova-android-debug.apk` asset.
+          files: ${{ matrix.release }}
+          prerelease: true
