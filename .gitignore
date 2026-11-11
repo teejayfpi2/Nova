@@ -16,3 +16,20 @@ nova-shot-*.png
 
 .env
 .DS_Store
+
+# Android build output (regenerate with scripts/build_apk.sh)
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.kotlin/
+
+# Desktop build output (regenerate with npm install && npm run dist)
+desktop/node_modules/
+desktop/dist/
+
+# Build toolchain cache
+/tmp/android-build/
+
+# Built installers (rebuild with scripts/build_apk.sh and npm run dist)
+dist/

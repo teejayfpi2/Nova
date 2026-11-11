@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -15,6 +16,17 @@ def _env_flag(name: str, default: bool = False) -> bool:
     if raw is None:
         return default
     return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _env_json(name: str) -> dict[str, str]:
+    raw = os.environ.get(name, "")
+    if not raw:
+        return {}
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        return {}
+    return {str(k): str(v) for k, v in parsed.items()} if isinstance(parsed, dict) else {}
 
 
 @dataclass
@@ -33,6 +45,11 @@ class Settings:
     )
     llm_model: str = field(
         default_factory=lambda: os.environ.get("NOVA_LLM_MODEL", "gpt-4o-mini")
+    )
+    # Extra headers, as JSON. Used by the OpenHands agent server, which
+    # authenticates with X-Session-API-Key instead of a Bearer token.
+    llm_headers: dict[str, str] = field(
+        default_factory=lambda: _env_json("NOVA_LLM_HEADERS")
     )
     llm_timeout: float = field(
         default_factory=lambda: float(os.environ.get("NOVA_LLM_TIMEOUT", "120"))

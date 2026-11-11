@@ -401,6 +401,128 @@ def run_python(code: str) -> str:
 
 
 # --------------------------------------------------------------------------
+# OpenHands superpowers
+# --------------------------------------------------------------------------
+def _openhands(ctx: ToolContext):
+    from ..openhands import OpenHandsClient
+
+    client = OpenHandsClient()
+    if not client.configured:
+        return None, (
+            "OpenHands is not configured. Set NOVA_OPENHANDS_URL and "
+            "NOVA_OPENHANDS_SESSION_KEY to enable autonomous task delegation."
+        )
+    return client, ""
+
+
+@tool(dangerous=True)
+def delegate_task(task: str, wait_seconds: int = 240, ctx: ToolContext = None) -> str:
+    """Hand a whole job to an autonomous OpenHands agent that can use a terminal,
+    edit files, browse the web and run code, then report the result.
+
+    Use this for multi-step work a chat model cannot do alone: clone and build a
+    repo, run tests and fix them, install packages, refactor code, scrape a site,
+    or research something across many pages. The agent works in its own sandbox.
+
+    task: a complete, self-contained description of what to accomplish
+    wait_seconds: how long to wait for the job before returning a job id to poll
+    """
+    client, err = _openhands(ctx)
+    if client is None:
+        return err
+    try:
+        cid = client.start_task(task)
+    except Exception as exc:  # noqa: BLE001
+        return f"could not start OpenHands task: {exc}"
+    result = client.wait(cid, timeout=float(max(5, wait_seconds)))
+    if result.finished:
+        body = result.response or "(the agent finished without a written summary)"
+        return f"OpenHands finished the task.\n\n{body}"
+    return (
+        f"OpenHands is still working (job id {cid}). "
+        f"Ask me to check on it with check_task."
+    )
+
+
+@tool
+def check_task(job_id: str, ctx: ToolContext = None) -> str:
+    """Check the status and result of a previously delegated OpenHands task.
+
+    job_id: the id returned by delegate_task
+    """
+    client, err = _openhands(ctx)
+    if client is None:
+        return err
+    try:
+        result = client.status(job_id)
+    except Exception as exc:  # noqa: BLE001
+        return f"could not check task: {exc}"
+    if result.finished:
+        return f"Task {job_id} is {result.status}.\n\n{result.response or '(no summary)'}"
+    return f"Task {job_id} is still {result.status}."
+
+
+@tool(dangerous=True)
+def research_topic(topic: str, depth: str = "standard", ctx: ToolContext = None) -> str:
+    """Do deep, multi-source research and return a written brief with sources.
+
+    Use this instead of web_search when the user wants a thorough answer that
+    needs reading several pages and synthesising them.
+
+    topic: what to research, as a full question or brief
+    depth: "quick" for a short answer, "standard" or "deep" for a full brief
+    """
+    client, err = _openhands(ctx)
+    if client is None:
+        return err
+    style = {
+        "quick": "Keep it under 150 words with the key facts only.",
+        "standard": "Write a concise brief with a short summary, the key points, and sources.",
+        "deep": (
+            "Write a thorough brief: executive summary, detailed findings with "
+            "figures, caveats, and a full source list."
+        ),
+    }.get(depth, "Write a concise brief with a short summary, key points, and sources.")
+    task = (
+        f"Research this and report back in the chat: {topic}\n\n{style}\n"
+        "Use web search and read the actual pages. Cite the URLs you used."
+    )
+    try:
+        result = client.run_task(task, timeout=600.0)
+    except Exception as exc:  # noqa: BLE001
+        return f"research failed: {exc}"
+    return result.response or "The research agent finished without a written summary."
+
+
+@tool(dangerous=True)
+def build_software(spec: str, wait_seconds: int = 300, ctx: ToolContext = None) -> str:
+    """Write, run and test real software from a plain-English description.
+
+    The OpenHands agent creates the files, installs what it needs, runs the code
+    and iterates until it works, then reports back with the result.
+
+    spec: what to build, in plain English, including the language if you care
+    wait_seconds: how long to wait before returning a job id to poll
+    """
+    client, err = _openhands(ctx)
+    if client is None:
+        return err
+    task = (
+        f"Build this and verify it actually runs:\n\n{spec}\n\n"
+        "Create the files in the working directory, install dependencies, run it, "
+        "fix any errors, and finish by telling me exactly how to use it."
+    )
+    try:
+        cid = client.start_task(task)
+    except Exception as exc:  # noqa: BLE001
+        return f"could not start the build: {exc}"
+    result = client.wait(cid, timeout=float(max(5, wait_seconds)))
+    if result.finished:
+        return f"Build finished.\n\n{result.response or '(no summary)'}"
+    return f"Still building (job id {cid}). Ask me to check_task on it."
+
+
+# --------------------------------------------------------------------------
 # helpers
 # --------------------------------------------------------------------------
 _REL = re.compile(r"^in\s+(\d+)\s*(second|sec|minute|min|hour|day|week)s?$", re.I)

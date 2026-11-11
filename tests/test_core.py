@@ -124,3 +124,88 @@ def test_duckduckgo_parser_extracts_clean_links():
     assert "Example A" in results[0]
     assert "First snippet" in results[0]
     assert "https://example.org/b" in results[1]
+
+
+def test_openhands_client_requires_config():
+    from assistant.openhands import OpenHandsClient, OpenHandsError
+
+    client = OpenHandsClient(base_url="", session_key="")
+    assert client.configured is False
+    with pytest.raises(OpenHandsError):
+        client.start_task("do something")
+
+
+def test_openhands_start_task_builds_payload(monkeypatch):
+    from assistant import openhands
+
+    captured = {}
+
+    class FakeResp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self):
+            return b'{"id": "conv-123"}'
+
+    def fake_urlopen(req, timeout=None):
+        captured["url"] = req.full_url
+        captured["headers"] = dict(req.headers)
+        captured["body"] = req.data
+        return FakeResp()
+
+    monkeypatch.setattr(openhands.urllib.request, "urlopen", fake_urlopen)
+    client = openhands.OpenHandsClient(base_url="http://127.0.0.1:60000", session_key="k")
+    cid = client.start_task("build a thing", model="openhands_Default")
+
+    assert cid == "conv-123"
+    assert captured["url"].endswith("/api/conversations")
+    assert captured["headers"].get("X-session-api-key") == "k"
+    import json
+
+    payload = json.loads(captured["body"])
+    assert payload["initial_message"]["content"][0]["text"] == "build a thing"
+    assert payload["agent"]["llm"]["model"] == "openhands_Default"
+    assert {"name": "terminal"} in payload["agent"]["tools"]
+
+
+def test_delegate_task_reports_when_unconfigured(monkeypatch):
+    from assistant import openhands
+
+    real = openhands.OpenHandsClient
+    monkeypatch.setattr(openhands, "OpenHandsClient", lambda *a, **k: real("", ""))
+    out = REGISTRY.call("delegate_task", {"task": "x"}, ctx=None)
+    assert "not configured" in out
+
+
+def test_llm_client_sends_extra_headers(monkeypatch):
+    from assistant import llm as llm_mod
+
+    captured = {}
+
+    class FakeResp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self):
+            return b'{"choices":[{"message":{"content":"hi"}}]}'
+
+    def fake_urlopen(req, timeout=None):
+        captured["headers"] = dict(req.headers)
+        return FakeResp()
+
+    monkeypatch.setattr(llm_mod.urllib.request, "urlopen", fake_urlopen)
+    client = llm_mod.LLMClient(
+        base_url="http://127.0.0.1:60000/v1",
+        api_key="",
+        model="openhands_Default",
+        extra_headers={"X-Session-API-Key": "secret"},
+    )
+    resp = client.chat([{"role": "user", "content": "hi"}])
+    assert resp.content == "hi"
+    assert captured["headers"].get("X-session-api-key") == "secret"

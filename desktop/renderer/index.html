@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Nova</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div class="brand"><span class="spark">✦</span> Nova</div>
+    <div class="status"><span id="dot" class="dot"></span><span id="statusText">connecting…</span></div>
+  </header>
+
+  <main id="messages"></main>
+
+  <footer>
+    <button id="micBtn" title="Talk to Nova">🎙</button>
+    <input id="input" placeholder="Ask Nova anything…" autocomplete="off" />
+    <button id="sendBtn">Send</button>
+  </footer>
+
+  <div id="settings" class="sheet hidden">
+    <h2>Settings</h2>
+    <label>Server URL<input id="serverUrl" /></label>
+    <label>Access token<input id="token" type="password" /></label>
+    <label>Device name<input id="deviceName" /></label>
+    <label class="check"><input id="agentEnabled" type="checkbox" /> Let Nova control this computer</label>
+    <label class="check"><input id="speakReplies" type="checkbox" /> Speak replies aloud</label>
+    <div class="row">
+      <button id="testBtn">Test connection</button>
+      <button id="saveBtn" class="primary">Save</button>
+    </div>
+    <p id="settingsMsg" class="muted"></p>
+  </div>
+
+  <button id="settingsBtn" class="gear" title="Settings">⚙</button>
+  <script src="app.js"></script>
+</body>
+</html>

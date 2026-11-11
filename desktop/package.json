@@ -1,0 +1,53 @@
+{
+  "name": "nova-desktop",
+  "version": "1.0.0",
+  "description": "Nova personal assistant for your laptop",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --publish never"
+  },
+  "author": "Nova",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "ai.nova.desktop",
+    "productName": "Nova",
+    "files": [
+      "main.js",
+      "preload.js",
+      "agent.js",
+      "renderer/**",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.productivity"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility"
+    }
+  },
+  "allowScripts": {
+    "electron@31.7.7": true
+  }
+}

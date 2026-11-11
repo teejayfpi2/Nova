@@ -100,11 +100,13 @@ class LLMClient:
         api_key: str | None = None,
         model: str | None = None,
         timeout: float | None = None,
+        extra_headers: dict[str, str] | None = None,
     ) -> None:
         self.base_url = (base_url or settings.llm_base_url).rstrip("/")
         self.api_key = api_key if api_key is not None else settings.llm_api_key
         self.model = model or settings.llm_model
         self.timeout = timeout or settings.llm_timeout
+        self.extra_headers = dict(extra_headers or settings.llm_headers)
         self._managed: ManagedKeyProvider | None = None
         refresh_url = os.environ.get("OH_LLM_API_KEY_REFRESH_URL")
         if refresh_url and not self.api_key:
@@ -122,8 +124,9 @@ class LLMClient:
         url = f"{self.base_url}{path}"
         data = json.dumps(body).encode()
         headers = {"Content-Type": "application/json"}
+        headers.update(self.extra_headers)
         key = self._auth_key()
-        if key:
+        if key and "Authorization" not in headers:
             headers["Authorization"] = f"Bearer {key}"
         req = urllib.request.Request(url, data=data, headers=headers, method="POST")
         try:

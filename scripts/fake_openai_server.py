@@ -46,6 +46,49 @@ DEVICE_SCRIPT: list[dict] = [
     {"content": "Typed it on your phone.", "tool_calls": []},
 ]
 
+# Used when the user's message mentions "open": drives an open_url tool call so
+# the desktop/laptop bridge round trip can be exercised end to end.
+URL_SCRIPT: list[dict] = [
+    {
+        "content": "",
+        "tool_calls": [
+            {
+                "id": "call_url",
+                "type": "function",
+                "function": {
+                    "name": "open_url",
+                    "arguments": json.dumps({"url": "https://example.com", "target": "desktop"}),
+                },
+            }
+        ],
+    },
+    {"content": "Opened example.com on your desktop.", "tool_calls": []},
+]
+
+# Used when the user's message mentions "delegate": drives a delegate_task tool
+# call so the full Nova -> OpenHands hand-off loop can be exercised end to end.
+DELEGATE_SCRIPT: list[dict] = [
+    {
+        "content": "",
+        "tool_calls": [
+            {
+                "id": "call_delegate",
+                "type": "function",
+                "function": {
+                    "name": "delegate_task",
+                    "arguments": json.dumps(
+                        {
+                            "task": "Create /tmp/nova-loop/proof.txt containing NOVA-LOOP-OK",
+                            "wait_seconds": 300,
+                        }
+                    ),
+                },
+            }
+        ],
+    },
+    {"content": "I delegated that to the team and they finished it.", "tool_calls": []},
+]
+
 
 class Handler(BaseHTTPRequestHandler):
     turn = 0
@@ -64,7 +107,14 @@ class Handler(BaseHTTPRequestHandler):
                 if m.get("role") == "user":
                     last_user = (m.get("content") or "")
                     break
-            script = DEVICE_SCRIPT if "type" in last_user.lower() else SCRIPT
+            script = SCRIPT
+            low = last_user.lower()
+            if "delegate" in low:
+                script = DELEGATE_SCRIPT
+            elif "type" in low:
+                script = DEVICE_SCRIPT
+            elif "open" in low:
+                script = URL_SCRIPT
             has_tool_result = any(m.get("role") == "tool" for m in messages)
             message = script[1] if has_tool_result else script[0]
             payload = {

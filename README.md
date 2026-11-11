@@ -5,28 +5,34 @@ things about you, and — unlike a plain chatbot — it actually *does* things o
 devices: types text, presses keys, clicks, opens apps, sends messages, reads your
 notifications, searches the web, runs commands and sets reminders.
 
-It is one small Python service. You run the server on one machine (a laptop, a
-Raspberry Pi, a cheap VPS), open the web app on your phone and laptop, and connect
-the devices you want it to control.
+It ships as **three pieces**: one Python server (the brain), a real **Android app**
+(installable APK), and a **desktop app** for your laptop. Both apps can either just
+talk to Nova or let it *control* that device.
+
+And it is more than a chatbot: Nova can hand whole jobs to a team of autonomous
+OpenHands agents that use a terminal, edit files, browse the web and build and run
+software. Ask for something big — "clone this repo and fix the failing tests",
+"research X and write me a brief", "build me a script that renames my photos" — and
+Nova delegates it, then reports back.
 
 ```
-        ┌───────────────┐        WebSocket / REST         ┌──────────────┐
-        │  Phone (PWA)  │◀───────────────────────────────▶│              │
-        └───────────────┘                                 │              │
-        ┌───────────────┐        WebSocket / REST         │  Nova server │
-        │ Laptop (PWA)  │◀───────────────────────────────▶│  (the brain) │
-        └───────────────┘                                 │              │
-                                                          └──────┬───────┘
-   ┌────────────────────┐   long-poll (outbound only)            │
-   │ phone_agent.py     │◀───────────────────────────────────────┤
-   │ (Termux or ADB)    │                                         │
-   ├────────────────────┤                                         │
-   │ laptop_agent.py    │◀────────────────────────────────────────┘
-   └────────────────────┘
+        ┌───────────────┐   REST / WebSocket   ┌──────────────┐
+        │ Nova Android  │◀────────────────────▶│              │
+        │   app (APK)   │                      │              │
+        └───────────────┘                      │              │
+        ┌───────────────┐   REST / WebSocket   │ Nova server  │
+        │ Nova Desktop  │◀────────────────────▶│ (the brain)  │
+        │  (Electron)   │                      │              │
+        └───────────────┘                      └──────┬───────┘
+                                                      │ delegates
+                                       ┌──────────────▼──────────────┐
+                                       │  OpenHands agent sandbox    │
+                                       │  terminal · files · browser │
+                                       └─────────────────────────────┘
 ```
 
-The agents on your devices only make *outbound* requests, so this works even when
-your phone is on mobile data behind a carrier NAT — no port forwarding needed.
+The apps only make *outbound* requests, so this works even when your phone is on
+mobile data behind a carrier NAT — no port forwarding needed.
 
 ## What it can do
 
@@ -39,6 +45,9 @@ your phone is on mobile data behind a carrier NAT — no port forwarding needed.
 | Phone | "Text Alex I'm running late", "read my last messages", "open WhatsApp" |
 | Laptop | "Type this into the form", "open Spotify", "take a screenshot", "press ctrl+s" |
 | Code | "Run the tests and tell me what failed", "what's my disk usage?" |
+| **Delegate** | "Clone that repo and fix the failing tests", "build me a photo-renamer" |
+| **Research** | "Research the best e-bikes under £2k and write me a brief with sources" |
+| **Build** | "Write and test a script that converts my videos to mp4" |
 | Voice | Hold the mic to talk; replies are spoken back |
 
 ## Quick start
@@ -83,13 +92,88 @@ python -m assistant.cli serve
 
 Open `http://<your-machine>:8000` on your laptop, and the same URL on your phone.
 
-### 4. Install the phone/laptop app
+### 4. Install the phone and laptop apps
 
-Open the web app in the browser and use **Add to Home Screen** (iOS Safari) or
-**Install app** (Android Chrome / desktop Chrome). It becomes a real app icon with
-its own window, and voice input works from there.
+**Android phone — install the APK**
 
-Put the server URL and the access token into **⚙ Settings** the first time.
+A ready-to-install debug APK is built for you. Build it fresh any time with:
+
+```bash
+./scripts/build_apk.sh          # downloads a private JDK+SDK on first run, no root needed
+# -> android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+Then get it onto the phone, either way works:
+
+```bash
+# over USB (developer mode + USB debugging on)
+adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+or copy the `.apk` to the phone (email it to yourself, Google Drive, `adb push`)
+and tap it — allow "install from unknown sources" when Android asks.
+
+Open **Nova**, tap **⚙ Settings**, and enter your server URL and token. Nova asks
+for microphone and notification permissions so you can talk to it and so it can
+read your notifications.
+
+**Laptop — install the desktop app**
+
+```bash
+cd desktop
+npm install
+npm run dist        # builds a real installer into desktop/dist/
+#   macOS   -> Nova-1.0.0.dmg
+#   Windows -> Nova Setup 1.0.0.exe
+#   Linux   -> Nova-1.0.0.AppImage / nova_1.0.0_amd64.deb
+```
+
+Install that file like any normal app. To just run it from source instead:
+
+```bash
+cd desktop && npm install && npm start
+```
+
+Nova lives in your menu bar / system tray. Open **Settings** inside the app, enter
+the server URL and token, and tick **Let Nova control this computer** if you want
+it to type, click and open things for you.
+
+The web/PWA version still works too — open the server URL in a browser and choose
+**Add to Home Screen** / **Install app** if you prefer not to install a binary.
+
+## Superpowers: delegating to OpenHands agents
+
+Nova's own brain can be *any* OpenAI-compatible model (see above). On top of that,
+Nova can hand big, multi-step jobs to autonomous OpenHands agents that have a real
+terminal, file editor and browser. Give Nova an OpenHands agent server and it gains
+four new tools: `delegate_task`, `check_task`, `research_topic` and `build_software`.
+
+```bash
+export NOVA_OPENHANDS_URL=http://127.0.0.1:60000      # an OpenHands agent server
+export NOVA_OPENHANDS_SESSION_KEY=your-session-key
+export NOVA_OPENHANDS_MODEL=openhands_Default          # any model it serves
+export NOVA_OPENHANDS_WORKDIR=/workspace               # where delegated work happens
+```
+
+Then just ask: *"delegate a task to build me a Python script that organises my
+Downloads folder by file type, with tests."* Nova starts a sandboxed agent, waits
+for it, and reads back the result. `check_task` lets you ask about a job later.
+
+### Using the OpenHands LLM as Nova's brain
+
+If you already run an OpenHands agent server, you can point Nova's own model at it
+so no separate API key is needed:
+
+```bash
+export NOVA_LLM_BASE_URL=http://127.0.0.1:60000/v1
+export NOVA_LLM_MODEL=openhands_Default
+export NOVA_LLM_API_KEY=                                   # empty is fine
+export NOVA_LLM_HEADERS='{"X-Session-API-Key": "your-session-key"}'
+```
+
+Any custom headers can be supplied as JSON via `NOVA_LLM_HEADERS`. If your endpoint
+uses a short-lived key, Nova can refresh it automatically when
+`OH_LLM_API_KEY_REFRESH_URL` is set — it re-reads the key on every request.
 
 ## Connecting your devices so Nova can act on them
 
@@ -147,6 +231,12 @@ Everything is an environment variable.
 | `NOVA_LLM_BASE_URL` | `https://api.openai.com/v1` | OpenAI-compatible endpoint |
 | `NOVA_LLM_API_KEY` | – | Key for that endpoint |
 | `NOVA_LLM_MODEL` | `gpt-4o-mini` | Model name |
+| `NOVA_LLM_HEADERS` | – | Extra request headers as JSON (e.g. for a session key) |
+| `NOVA_OPENHANDS_URL` | – | OpenHands agent server for delegation tools |
+| `NOVA_OPENHANDS_SESSION_KEY` | – | Key for that agent server |
+| `NOVA_OPENHANDS_MODEL` | `openhands_Default` | Model the delegated agents use |
+| `NOVA_OPENHANDS_WORKDIR` | – | Working directory for delegated work |
+| `NOVA_OPENHANDS_TIMEOUT` | `60` | Per-request timeout (seconds) to the agent server |
 | `NOVA_HOST` / `NOVA_PORT` | `0.0.0.0` / `8000` | Server bind address |
 | `NOVA_AUTH_TOKEN` | – | Shared secret; **set this** if the server is reachable from the internet |
 | `NOVA_STT_BACKEND` | `auto` | `auto`, `openai`, `faster-whisper`, `whisper`, `vosk` |
@@ -188,7 +278,7 @@ docker run -p 8000:8000 \
 
 ```bash
 pip install -r requirements.txt pytest httpx
-python -m pytest tests -q          # 17 tests, no network needed
+python -m pytest tests -q          # 22 tests, no network needed
 
 # run a fake model + server for offline hacking
 python scripts/fake_openai_server.py 9099 &
@@ -201,17 +291,24 @@ NOVA_LLM_BASE_URL=http://127.0.0.1:9099/v1 NOVA_LLM_API_KEY=x NOVA_LLM_MODEL=fak
 ```
 assistant/
   agent.py       the reasoning loop: prompt -> tool calls -> answer
-  llm.py         OpenAI-compatible client (+ managed key refresh)
+  llm.py         OpenAI-compatible client (+ managed key refresh, custom headers)
+  openhands.py   OpenHands agent server client used by the delegation tools
   memory.py      SQLite long-term memory: facts, notes, todos, reminders
   voice.py       speech-to-text and text-to-speech with fallbacks
   bridges.py     local + remote device control
   scheduler.py   fires reminders in the background
   server.py      FastAPI app: REST, WebSocket, PWA hosting
-  tools/         the tools the model can call
+  tools/         the tools the model can call (incl. delegate_task & friends)
   static/        the installable web/PWA interface
+android/         the Android app (Kotlin) -> build with scripts/build_apk.sh
+desktop/         the laptop app (Electron) -> build with npm run dist
 bridges/
   phone_agent.py   runs on Android (Termux or ADB)
-  laptop_agent.py  runs on a second computer
+  laptop_agent.py  runs on a second computer (Python, no build needed)
+scripts/
+  build_apk.sh           one-shot Android build (self-contained toolchain)
+  gen_android_sources.py regenerates the Android sources
+  gen_desktop_sources.py regenerates the desktop app sources
 ```
 
 ## Troubleshooting
@@ -223,3 +320,12 @@ bridges/
 - **Device action times out** — the agent on that device is not running or cannot
   reach the server. Check `/api/devices` shows it online.
 - **Nothing happens on the phone** — install Termux:API, or use ADB mode.
+- **Delegation says "not configured"** — set `NOVA_OPENHANDS_URL` and
+  `NOVA_OPENHANDS_SESSION_KEY`, and make sure the agent server is reachable.
+- **`delegate_task` times out** — the delegated job can take minutes; raise
+  `NOVA_OPENHANDS_TIMEOUT` (seconds) or use `check_task` with the returned id.
+- **APK won't install** — allow "install from unknown sources" for your file
+  manager/browser, or use `adb install -r`. The debug APK is signed with the
+  standard Android debug key.
+- **Desktop app shows "offline"** — open Settings in the app and check the server
+  URL/token, then hit **Test connection**. The tray icon keeps it running.
