@@ -1,0 +1,26 @@
+[project]
+name = "nova-assistant"
+version = "0.1.0"
+description = "A personal voice assistant that runs on your laptop and phone"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "python-multipart>=0.0.9",
+    "requests>=2.31",
+]
+
+[project.optional-dependencies]
+voice = ["faster-whisper>=1.0", "edge-tts>=6.1"]
+desktop = ["pyautogui>=0.9.54"]
+all = ["faster-whisper>=1.0", "edge-tts>=6.1", "pyautogui>=0.9.54"]
+
+[project.scripts]
+nova = "assistant.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["assistant*"]

@@ -1,0 +1,12 @@
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9
+requests>=2.31
+
+# --- optional, enable extra capabilities -------------------------------------
+# Local speech-to-text (no API key, runs on device):
+#   pip install faster-whisper
+# Local text-to-speech:
+#   pip install edge-tts
+# Desktop automation (typing, clicking, screenshots on the machine running Nova):
+#   pip install pyautogui
