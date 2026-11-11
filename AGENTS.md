@@ -19,6 +19,10 @@ to autonomous OpenHands agents. See `README.md` for the user-facing guide.
 - `assistant/openhands.py` — client for an OpenHands agent server; powers the
   `delegate_task` / `check_task` / `research_topic` / `build_software` tools.
 - `assistant/memory.py` — SQLite long-term memory (facts, notes, todos, reminders, history).
+- `assistant/identity.py` — the **single source of truth** for the builder's details
+  (name/email/phone/LinkedIn). Wired into the agent prompt (`builder_block()`),
+  seeded memory facts, `/api/about`, and the web/desktop/Android About screens.
+  Override with `NOVA_BUILDER_*` env vars.
 - `assistant/tools/__init__.py` — `@tool` decorator + registry that builds JSON schemas.
 - `assistant/tools/builtin.py` — all built-in tools.
 - `assistant/bridges.py` — `LocalBridge` (in-process, pyautogui/xdotool) and
@@ -37,7 +41,7 @@ to autonomous OpenHands agents. See `README.md` for the user-facing guide.
 ## Commands
 
 ```bash
-python -m pytest tests -q                      # 22 tests, no network needed
+python -m pytest tests -q                      # 26 tests, no network needed
 python -m assistant.cli chat                   # interactive
 python -m assistant.cli serve                  # run the server
 python scripts/fake_openai_server.py 9099 &    # stub model

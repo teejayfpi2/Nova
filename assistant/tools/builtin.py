@@ -58,6 +58,17 @@ def forget(key: str, ctx: ToolContext = None) -> str:
 
 
 # --------------------------------------------------------------------------
+# about the builder
+# --------------------------------------------------------------------------
+@tool
+def about_builder() -> str:
+    """Report who built Nova: name, role, email, phone and LinkedIn."""
+    from ..identity import builder_block
+
+    return builder_block()
+
+
+# --------------------------------------------------------------------------
 # notes / todos
 # --------------------------------------------------------------------------
 @tool

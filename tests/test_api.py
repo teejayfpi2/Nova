@@ -104,6 +104,44 @@ def test_index_serves_ui(client):
     assert "Nova" in html and "app.js" in html
 
 
+def test_about_endpoint_returns_builder(client):
+    body = client.get("/api/about").json()
+    assert body["app"] == "Nova"
+    b = body["builder"]
+    assert b["name"] == "Ayanlowo Olatunji Ayobami"
+    assert b["email"] == "ayanlowo89@gmail.com"
+    assert b["phone"] == "+2347038193753"
+    assert "linkedin.com/in/olatunjiayanlowo" in b["linkedin"]
+
+
+def test_builder_facts_are_seeded_and_recallable(client):
+    # The server seeds the builder's details into memory on startup.
+    facts = {f["key"]: f["value"] for f in client.get("/api/memory").json()["facts"]}
+    assert facts["builder_name"] == "Ayanlowo Olatunji Ayobami"
+    assert facts["builder_email"] == "ayanlowo89@gmail.com"
+    assert facts["builder_phone"] == "+2347038193753"
+    assert "olatunjiayanlowo" in facts["builder_linkedin"]
+
+
+def test_about_builder_tool(client):
+    from assistant.tools import REGISTRY
+
+    tool = REGISTRY.get("about_builder")
+    assert tool is not None
+    text = tool.func()
+    assert "Ayanlowo Olatunji Ayobami" in text
+    assert "ayanlowo89@gmail.com" in text
+    assert "olatunjiayanlowo" in text
+
+
+def test_system_prompt_includes_builder(client):
+    from assistant import server
+
+    prompt = server.agent._system_prompt()
+    assert "Ayanlowo Olatunji Ayobami" in prompt
+    assert "olatunjiayanlowo" in prompt
+
+
 def test_device_tool_routes_through_remote_bridge(client):
     """A device tool call must reach the phone agent and return its result.
 

@@ -16,7 +16,7 @@ FILES["package.json"] = """\
     "start": "electron .",
     "dist": "electron-builder --publish never"
   },
-  "author": "Nova",
+  "author": "Ayanlowo Olatunji Ayobami <ayanlowo89@gmail.com> (https://www.linkedin.com/in/olatunjiayanlowo)",
   "license": "MIT",
   "devDependencies": {
     "electron": "^31.0.0",
@@ -30,6 +30,9 @@ FILES["package.json"] = """\
     "mac": { "target": ["dmg", "zip"], "category": "public.app-category.productivity" },
     "win": { "target": ["nsis", "portable"] },
     "linux": { "target": ["AppImage", "deb"], "category": "Utility" }
+  },
+  "allowScripts": {
+    "electron@31.7.7": true
   }
 }
 """
@@ -44,6 +47,7 @@ contextBridge.exposeInMainWorld('nova', {
   chat: (message, session) => ipcRenderer.invoke('server:chat', { message, session }),
   devices: () => ipcRenderer.invoke('server:devices'),
   speak: (text) => ipcRenderer.invoke('tts:speak', text),
+  openExternal: (url) => ipcRenderer.invoke('open:external', url),
   onAgentEvent: (cb) => ipcRenderer.on('agent:event', (_e, data) => cb(data)),
 });
 """
@@ -413,6 +417,10 @@ FILES["renderer/index.html"] = """\
       <button id="saveBtn" class="primary">Save</button>
     </div>
     <p id="settingsMsg" class="muted"></p>
+    <p class="muted about">Nova — built by Ayanlowo Olatunji Ayobami<br />
+      ayanlowo89@gmail.com · +2347038193753 ·<br />
+      <a href="https://www.linkedin.com/in/olatunjiayanlowo" target="_blank" rel="noopener">LinkedIn</a>
+    </p>
   </div>
 
   <button id="settingsBtn" class="gear" title="Settings">⚙</button>
@@ -488,6 +496,9 @@ button.primary { background: var(--accent); color: #0b0f1a; border-color: var(--
 .row button { flex: 1; }
 .hidden { display: none; }
 .muted { color: var(--dim); font-size: 12.5px; }
+.about { margin-top: 14px; line-height: 1.6; }
+.about a { color: var(--accent); text-decoration: none; }
+.about a:hover { text-decoration: underline; }
 """
 
 FILES["renderer/app.js"] = """\
@@ -582,6 +593,13 @@ window.addEventListener('DOMContentLoaded', async () => {
   $('micBtn').onclick = listen;
   $('settingsBtn').onclick = openSettings;
   $('input').addEventListener('keydown', (e) => { if (e.key === 'Enter') send(); });
+
+  document.querySelectorAll('#settings a[href]').forEach((a) => {
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (window.nova.openExternal) window.nova.openExternal(a.href);
+    });
+  });
 
   $('testBtn').onclick = async () => {
     $('settingsMsg').textContent = 'testing…';

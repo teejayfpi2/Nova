@@ -34,6 +34,23 @@ Nova delegates it, then reports back.
 The apps only make *outbound* requests, so this works even when your phone is on
 mobile data behind a carrier NAT — no port forwarding needed.
 
+## Built by
+
+Nova was created and is developed by **Ayanlowo Olatunji Ayobami**.
+
+| | |
+| --- | --- |
+| Email | [ayanlowo89@gmail.com](mailto:ayanlowo89@gmail.com) |
+| Phone | [+2347038193753](tel:+2347038193753) |
+| LinkedIn | [linkedin.com/in/olatunjiayanlowo](https://www.linkedin.com/in/olatunjiayanlowo) |
+
+The builder's details live in one place — [`assistant/identity.py`](assistant/identity.py) —
+and are surfaced everywhere: the agent's system prompt (so you can just *ask Nova*
+who built it), seeded memory facts (`builder_name`, `builder_email`, ...), the
+`/api/about` endpoint, the web settings panel, the desktop app's Settings sheet and
+the Android app's Settings screen. Ask Nova "who built you?" and it will answer,
+then use its web tools to look up the LinkedIn profile for more.
+
 ## What it can do
 
 | Area | Examples |

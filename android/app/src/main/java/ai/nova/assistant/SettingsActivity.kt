@@ -110,6 +110,31 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
         root.addView(save)
+
+        val aboutTitle = TextView(this).apply {
+            text = getString(R.string.about_title)
+            textSize = 15f
+            setTextColor(ContextCompat.getColor(this@SettingsActivity, R.color.nova_text))
+            setPadding(0, 48, 0, 8)
+        }
+        root.addView(aboutTitle)
+
+        val about = TextView(this).apply {
+            textSize = 13f
+            setTextColor(ContextCompat.getColor(this@SettingsActivity, R.color.nova_text_dim))
+            val b = StringBuilder(getString(R.string.builder_name)).append("\n")
+                .append(getString(R.string.builder_email)).append("\n")
+                .append(getString(R.string.builder_phone)).append("\n")
+                .append(getString(R.string.builder_linkedin))
+            text = b
+            setOnClickListener {
+                startActivity(
+                    Intent(Intent.ACTION_VIEW, android.net.Uri.parse(getString(R.string.builder_linkedin)))
+                )
+            }
+        }
+        root.addView(about)
+
         return root
     }
 

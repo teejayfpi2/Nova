@@ -16,9 +16,10 @@ class DeviceActions(private val context: Context) {
         return when (action) {
             "open_app" -> openApp(args.optString("name", args.optString("package", "")))
             "open_url" -> openUrl(args.optString("url", ""))
-            "send_message" -> sendSms(
-                args.optString("to", ""),
-                args.optString("body", args.optString("text", ""))
+            "send_message" -> sendMessage(
+                args.optString("contact", args.optString("to", "")),
+                args.optString("text", args.optString("body", "")),
+                args.optString("app", "sms")
             )
             "open_settings" -> openSettings()
             "notify", "notification" -> "notifications are shown by the app itself"
@@ -56,8 +57,18 @@ class DeviceActions(private val context: Context) {
         return "opened $fixed"
     }
 
+    private fun sendMessage(contact: String, text: String, app: String): String {
+        if (contact.isBlank() || text.isBlank()) return "need both 'contact' and 'text'"
+        return when (app.lowercase()) {
+            "whatsapp" -> openUrl(
+                "https://wa.me/${Uri.encode(contact)}?text=${Uri.encode(text)}"
+            )
+            "telegram" -> openUrl("https://t.me/${Uri.encode(contact)}")
+            else -> sendSms(contact, text)
+        }
+    }
+
     private fun sendSms(to: String, body: String): String {
-        if (to.isBlank() || body.isBlank()) return "need both 'to' and 'body'"
         val sm = SmsManager.getDefault()
         val parts = sm.divideMessage(body)
         sm.sendMultipartTextMessage(to, null, parts, null, null)

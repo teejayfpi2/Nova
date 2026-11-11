@@ -9,4 +9,9 @@
     <string name="server_url">Server URL</string>
     <string name="auth_token">Access token</string>
     <string name="test_connection">Test connection</string>
+    <string name="about_title">About Nova</string>
+    <string name="builder_name">Built by Ayanlowo Olatunji Ayobami</string>
+    <string name="builder_email">ayanlowo89@gmail.com</string>
+    <string name="builder_phone">+2347038193753</string>
+    <string name="builder_linkedin">https://www.linkedin.com/in/olatunjiayanlowo</string>
 </resources>

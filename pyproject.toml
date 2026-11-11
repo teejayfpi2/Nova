@@ -2,6 +2,7 @@
 name = "nova-assistant"
 version = "0.1.0"
 description = "A personal voice assistant that runs on your laptop and phone"
+authors = [{ name = "Ayanlowo Olatunji Ayobami", email = "ayanlowo89@gmail.com" }]
 requires-python = ">=3.10"
 dependencies = [
     "fastapi>=0.110",

@@ -204,6 +204,13 @@ $("settings-btn").onclick = async () => {
     $("voice-info").textContent =
       `STT: ${d.stt.available.join(", ") || "none"} · TTS: ${d.tts.available.join(", ") || "none"}`;
   } catch { $("voice-info").textContent = ""; }
+  try {
+    const res = await api("/api/about");
+    const b = (await res.json()).builder || {};
+    $("about-info").textContent =
+      `Nova — built by ${b.name || "Ayanlowo Olatunji Ayobami"}` +
+      (b.email ? ` · ${b.email}` : "") + (b.phone ? ` · ${b.phone}` : "");
+  } catch { $("about-info").textContent = "Nova — built by Ayanlowo Olatunji Ayobami"; }
   $("settings").showModal();
 };
 

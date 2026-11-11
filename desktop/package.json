@@ -7,7 +7,7 @@
     "start": "electron .",
     "dist": "electron-builder --publish never"
   },
-  "author": "Nova",
+  "author": "Ayanlowo Olatunji Ayobami <ayanlowo89@gmail.com> (https://www.linkedin.com/in/olatunjiayanlowo)",
   "license": "MIT",
   "devDependencies": {
     "electron": "^31.0.0",
@@ -16,36 +16,11 @@
   "build": {
     "appId": "ai.nova.desktop",
     "productName": "Nova",
-    "files": [
-      "main.js",
-      "preload.js",
-      "agent.js",
-      "renderer/**",
-      "package.json"
-    ],
-    "directories": {
-      "output": "dist"
-    },
-    "mac": {
-      "target": [
-        "dmg",
-        "zip"
-      ],
-      "category": "public.app-category.productivity"
-    },
-    "win": {
-      "target": [
-        "nsis",
-        "portable"
-      ]
-    },
-    "linux": {
-      "target": [
-        "AppImage",
-        "deb"
-      ],
-      "category": "Utility"
-    }
+    "files": ["main.js", "preload.js", "agent.js", "renderer/**", "package.json"],
+    "directories": { "output": "dist" },
+    "mac": { "target": ["dmg", "zip"], "category": "public.app-category.productivity" },
+    "win": { "target": ["nsis", "portable"] },
+    "linux": { "target": ["AppImage", "deb"], "category": "Utility" }
   },
   "allowScripts": {
     "electron@31.7.7": true

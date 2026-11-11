@@ -41,15 +41,17 @@ class DeviceAgentService : Service() {
         while (running.get()) {
             try {
                 api.registerAgent(name, caps)
-                val cmd = api.pollCommand(name, wait = 30)
-                if (cmd != null) {
-                    val id = cmd.optString("id", "")
-                    val output = try {
-                        actions.execute(name, cmd)
-                    } catch (e: Exception) {
-                        "error: ${e.message}"
+                while (running.get()) {
+                    val cmd = api.pollCommand(name, caps, wait = 30)
+                    if (cmd != null) {
+                        val id = cmd.optString("id", "")
+                        val output = try {
+                            actions.execute(name, cmd)
+                        } catch (e: Exception) {
+                            "error: ${e.message}"
+                        }
+                        api.postResult(name, id, ok = true, output = output)
                     }
-                    api.postResult(name, id, ok = true, output = output)
                 }
             } catch (e: Exception) {
                 Thread.sleep(3000)

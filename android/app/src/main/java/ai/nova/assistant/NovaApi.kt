@@ -52,27 +52,24 @@ class NovaApi(private val prefs: Prefs) {
 
     /** Register this device so the server can route device actions to it. */
     fun registerAgent(name: String, capabilities: List<String>) {
-        val caps = org.json.JSONArray()
-        capabilities.forEach { caps.put(it) }
-        post("/api/devices/register", JSONObject()
-            .put("name", name)
-            .put("capabilities", caps))
+        post("/api/devices/$name/hello", JSONObject()
+            .put("capabilities", capsArray(capabilities)))
     }
 
-    /** Long-poll for the next command. Returns null on timeout. */
-    fun pollCommand(name: String, wait: Int = 30): JSONObject? {
+    private fun capsArray(capabilities: List<String>): org.json.JSONArray {
+        val caps = org.json.JSONArray()
+        capabilities.forEach { caps.put(it) }
+        return caps
+    }
+
+    /** Poll for the next command. Returns null when there is nothing to do. */
+    fun pollCommand(name: String, capabilities: List<String>, wait: Int = 30): JSONObject? {
         return try {
-            val url = prefs.serverUrl.trimEnd('/') +
-                "/api/devices/$name/next?wait=$wait"
-            val b = Request.Builder().url(url)
-            if (prefs.token.isNotBlank()) b.header("Authorization", "Bearer ${prefs.token}")
-            client.newCall(b.build()).execute().use { r ->
-                if (r.code == 204) return null
-                val text = r.body?.string() ?: ""
-                if (!r.isSuccessful) return null
-                if (text.isBlank()) return null
-                JSONObject(text)
-            }
+            val payload = JSONObject()
+                .put("name", name)
+                .put("capabilities", capsArray(capabilities))
+            val job = post("/api/bridge/poll", payload).optJSONObject("job") ?: return null
+            if (job.length() == 0) null else job
         } catch (e: Exception) {
             null
         }
@@ -80,10 +77,11 @@ class NovaApi(private val prefs: Prefs) {
 
     fun postResult(name: String, commandId: String, ok: Boolean, output: String) {
         try {
-            post("/api/devices/$name/result", JSONObject()
+            val result = if (ok) output else "error: $output"
+            post("/api/bridge/result", JSONObject()
+                .put("name", name)
                 .put("id", commandId)
-                .put("ok", ok)
-                .put("output", output.take(4000)))
+                .put("result", result.take(2000)))
         } catch (_: Exception) {
         }
     }

@@ -26,6 +26,8 @@ from .agent import Agent
 from .bridges import REGISTRY as BRIDGES
 from .bridges import LocalBridge, RemoteBridge
 from .config import settings
+from .identity import as_dict as builder_dict
+from .identity import seed_memory as seed_builder
 from .llm import LLMClient
 from .memory import Memory
 from .scheduler import Scheduler
@@ -97,6 +99,7 @@ hub = Hub()
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     hub.bind_loop(asyncio.get_running_loop())
+    seed_builder(memory)
 
     def on_reminder(reminder) -> None:  # noqa: ANN001
         hub.broadcast_threadsafe(
@@ -314,6 +317,12 @@ async def bridge_result(payload: dict[str, Any]) -> dict[str, Any]:
 # --------------------------------------------------------------------------
 # shell / health
 # --------------------------------------------------------------------------
+@app.get("/api/about")
+async def about() -> dict[str, Any]:
+    """Who built Nova. Public so the apps can show an About screen."""
+    return {"app": "Nova", "version": app.version, "builder": builder_dict()}
+
+
 @app.get("/api/health")
 async def health() -> dict[str, Any]:
     return {

@@ -90,6 +90,13 @@ window.addEventListener('DOMContentLoaded', async () => {
   $('settingsBtn').onclick = openSettings;
   $('input').addEventListener('keydown', (e) => { if (e.key === 'Enter') send(); });
 
+  document.querySelectorAll('#settings a[href]').forEach((a) => {
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (window.nova.openExternal) window.nova.openExternal(a.href);
+    });
+  });
+
   $('testBtn').onclick = async () => {
     $('settingsMsg').textContent = 'testing…';
     try {

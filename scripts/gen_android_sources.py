@@ -131,27 +131,24 @@ class NovaApi(private val prefs: Prefs) {
 
     /** Register this device so the server can route device actions to it. */
     fun registerAgent(name: String, capabilities: List<String>) {
-        val caps = org.json.JSONArray()
-        capabilities.forEach { caps.put(it) }
-        post("/api/devices/register", JSONObject()
-            .put("name", name)
-            .put("capabilities", caps))
+        post("/api/devices/$name/hello", JSONObject()
+            .put("capabilities", capsArray(capabilities)))
     }
 
-    /** Long-poll for the next command. Returns null on timeout. */
-    fun pollCommand(name: String, wait: Int = 30): JSONObject? {
+    private fun capsArray(capabilities: List<String>): org.json.JSONArray {
+        val caps = org.json.JSONArray()
+        capabilities.forEach { caps.put(it) }
+        return caps
+    }
+
+    /** Poll for the next command. Returns null when there is nothing to do. */
+    fun pollCommand(name: String, capabilities: List<String>, wait: Int = 30): JSONObject? {
         return try {
-            val url = prefs.serverUrl.trimEnd('/') +
-                "/api/devices/$name/next?wait=$wait"
-            val b = Request.Builder().url(url)
-            if (prefs.token.isNotBlank()) b.header("Authorization", "Bearer ${prefs.token}")
-            client.newCall(b.build()).execute().use { r ->
-                if (r.code == 204) return null
-                val text = r.body?.string() ?: ""
-                if (!r.isSuccessful) return null
-                if (text.isBlank()) return null
-                JSONObject(text)
-            }
+            val payload = JSONObject()
+                .put("name", name)
+                .put("capabilities", capsArray(capabilities))
+            val job = post("/api/bridge/poll", payload).optJSONObject("job") ?: return null
+            if (job.length() == 0) null else job
         } catch (e: Exception) {
             null
         }
@@ -159,10 +156,11 @@ class NovaApi(private val prefs: Prefs) {
 
     fun postResult(name: String, commandId: String, ok: Boolean, output: String) {
         try {
-            post("/api/devices/$name/result", JSONObject()
+            val result = if (ok) output else "error: $output"
+            post("/api/bridge/result", JSONObject()
+                .put("name", name)
                 .put("id", commandId)
-                .put("ok", ok)
-                .put("output", output.take(4000)))
+                .put("result", result.take(2000)))
         } catch (_: Exception) {
         }
     }
@@ -188,9 +186,10 @@ class DeviceActions(private val context: Context) {
         return when (action) {
             "open_app" -> openApp(args.optString("name", args.optString("package", "")))
             "open_url" -> openUrl(args.optString("url", ""))
-            "send_message" -> sendSms(
-                args.optString("to", ""),
-                args.optString("body", args.optString("text", ""))
+            "send_message" -> sendMessage(
+                args.optString("contact", args.optString("to", "")),
+                args.optString("text", args.optString("body", "")),
+                args.optString("app", "sms")
             )
             "open_settings" -> openSettings()
             "notify", "notification" -> "notifications are shown by the app itself"
@@ -228,8 +227,18 @@ class DeviceActions(private val context: Context) {
         return "opened $fixed"
     }
 
+    private fun sendMessage(contact: String, text: String, app: String): String {
+        if (contact.isBlank() || text.isBlank()) return "need both 'contact' and 'text'"
+        return when (app.lowercase()) {
+            "whatsapp" -> openUrl(
+                "https://wa.me/${Uri.encode(contact)}?text=${Uri.encode(text)}"
+            )
+            "telegram" -> openUrl("https://t.me/${Uri.encode(contact)}")
+            else -> sendSms(contact, text)
+        }
+    }
+
     private fun sendSms(to: String, body: String): String {
-        if (to.isBlank() || body.isBlank()) return "need both 'to' and 'body'"
         val sm = SmsManager.getDefault()
         val parts = sm.divideMessage(body)
         sm.sendMultipartTextMessage(to, null, parts, null, null)
@@ -289,15 +298,17 @@ class DeviceAgentService : Service() {
         while (running.get()) {
             try {
                 api.registerAgent(name, caps)
-                val cmd = api.pollCommand(name, wait = 30)
-                if (cmd != null) {
-                    val id = cmd.optString("id", "")
-                    val output = try {
-                        actions.execute(name, cmd)
-                    } catch (e: Exception) {
-                        "error: ${e.message}"
+                while (running.get()) {
+                    val cmd = api.pollCommand(name, caps, wait = 30)
+                    if (cmd != null) {
+                        val id = cmd.optString("id", "")
+                        val output = try {
+                            actions.execute(name, cmd)
+                        } catch (e: Exception) {
+                            "error: ${e.message}"
+                        }
+                        api.postResult(name, id, ok = true, output = output)
                     }
-                    api.postResult(name, id, ok = true, output = output)
                 }
             } catch (e: Exception) {
                 Thread.sleep(3000)
@@ -681,6 +692,31 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
         root.addView(save)
+
+        val aboutTitle = TextView(this).apply {
+            text = getString(R.string.about_title)
+            textSize = 15f
+            setTextColor(ContextCompat.getColor(this@SettingsActivity, R.color.nova_text))
+            setPadding(0, 48, 0, 8)
+        }
+        root.addView(aboutTitle)
+
+        val about = TextView(this).apply {
+            textSize = 13f
+            setTextColor(ContextCompat.getColor(this@SettingsActivity, R.color.nova_text_dim))
+            val b = StringBuilder(getString(R.string.builder_name)).append("\\n")
+                .append(getString(R.string.builder_email)).append("\\n")
+                .append(getString(R.string.builder_phone)).append("\\n")
+                .append(getString(R.string.builder_linkedin))
+            text = b
+            setOnClickListener {
+                startActivity(
+                    Intent(Intent.ACTION_VIEW, android.net.Uri.parse(getString(R.string.builder_linkedin)))
+                )
+            }
+        }
+        root.addView(about)
+
         return root
     }
 

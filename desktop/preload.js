@@ -7,5 +7,6 @@ contextBridge.exposeInMainWorld('nova', {
   chat: (message, session) => ipcRenderer.invoke('server:chat', { message, session }),
   devices: () => ipcRenderer.invoke('server:devices'),
   speak: (text) => ipcRenderer.invoke('tts:speak', text),
+  openExternal: (url) => ipcRenderer.invoke('open:external', url),
   onAgentEvent: (cb) => ipcRenderer.on('agent:event', (_e, data) => cb(data)),
 });

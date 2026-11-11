@@ -7,6 +7,7 @@ import time
 from typing import Any, Callable, Iterator
 
 from .config import Settings, settings as default_settings
+from .identity import builder_block
 from .llm import LLMClient, LLMError
 from .memory import Memory
 from .tools import REGISTRY, ToolContext, builtin  # noqa: F401 - builtin registers the tools
@@ -37,6 +38,11 @@ Rules:
 - When you learn a durable fact about the user, save it with remember().
 - Keep spoken replies short (1-3 sentences) unless the user asks for detail.
 - After acting, confirm what you did in one line.
+- If asked who built, created or made you, answer with your builder's details
+  below. To learn more about your builder, use web_search and read_page on
+  their LinkedIn profile.
+
+{builder}
 
 {memory}
 
@@ -59,6 +65,7 @@ class Agent:
     # -- context ---------------------------------------------------------
     def _system_prompt(self) -> str:
         return SYSTEM_PROMPT.format(
+            builder=builder_block(),
             memory=self.memory.context_block(),
             now=time.strftime("%A %d %B %Y, %H:%M %Z"),
         )
