@@ -32,6 +32,11 @@ jobs:
 
       - name: Set up the Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # The legacy "tools" package was removed from Google's SDK repository,
+          # but this action still installs it by default (and fails). Ask only
+          # for what the build needs, pinned to the versions in build.gradle.kts.
+          packages: "platform-tools platforms;android-34 build-tools;34.0.0"
 
       - name: Cache Gradle packages
         uses: actions/cache@v4
