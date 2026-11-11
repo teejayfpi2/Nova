@@ -341,9 +341,35 @@ async def index() -> HTMLResponse:
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
+def _lan_ip() -> str:
+    """Best-effort LAN address to show the user for phone setup."""
+    import socket
+
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))  # no packets sent; just picks the outbound iface
+        return s.getsockname()[0]
+    except OSError:
+        return "127.0.0.1"
+    finally:
+        s.close()
+
+
 def main() -> None:
     import uvicorn
 
+    ip = _lan_ip()
+    print()
+    print("  Nova is starting.")
+    print(f"  On this computer:  http://localhost:{settings.port}")
+    print(f"  On your phone:     http://{ip}:{settings.port}")
+    if settings.auth_token:
+        print(f"  Access token:      {settings.auth_token}")
+    else:
+        print("  Access token:      (none — anyone on this network can use Nova;")
+        print("                      set NOVA_AUTH_TOKEN to require one)")
+    print("  Enter the phone URL and token in the app's Settings screen.")
+    print()
     uvicorn.run(
         "assistant.server:app",
         host=settings.host,

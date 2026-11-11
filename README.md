@@ -104,10 +104,22 @@ export NOVA_LLM_MODEL=llama3.1
 ```bash
 export NOVA_AUTH_TOKEN=$(python3 -c "import secrets;print(secrets.token_urlsafe(24))")
 python -m assistant.cli serve
-# -> http://0.0.0.0:8000
+# ->
+#   Nova is starting.
+#   On this computer:  http://localhost:8000
+#   On your phone:     http://192.168.1.42:8000
+#   Access token:      <the token above>
 ```
 
-Open `http://<your-machine>:8000` on your laptop, and the same URL on your phone.
+The banner prints exactly what to type into the phone and desktop apps. Open
+`http://<your-machine>:8000` on your laptop, and the same URL on your phone.
+
+The **server URL** is your computer's address on the network — the phone and
+computer must be on the same Wi-Fi. Don't use `localhost`/`127.0.0.1` in the app:
+on the phone that means the phone itself. The **access token** is whatever you set
+`NOVA_AUTH_TOKEN` to; if you left it empty, the server needs no token and the app
+can leave the field blank (but anyone who can reach the port can then use Nova, so
+set one if the port is exposed beyond your LAN).
 
 ### 4. Install the phone and laptop apps
 
