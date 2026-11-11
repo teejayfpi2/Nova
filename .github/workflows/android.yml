@@ -15,6 +15,12 @@ on:
 permissions:
   contents: write
 
+# Two pushes in quick succession would otherwise race on the same "latest"
+# release and one of them could fail. Serialize runs and cancel stale ones.
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: Build debug APK
