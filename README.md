@@ -166,8 +166,8 @@ Easiest: grab the installer for your OS from the rolling **`latest`** release
 
 | OS | Download |
 | --- | --- |
-| Windows | `Nova Setup 1.0.0.exe` |
-| macOS | `Nova-1.0.0.dmg` |
+| Windows | `Nova.Setup.1.0.0.exe` (installer) or `Nova.1.0.0.exe` (portable) |
+| macOS | `Nova-1.0.0-arm64.dmg` |
 | Linux | `Nova-1.0.0.AppImage` (portable) or `nova-desktop_1.0.0_amd64.deb` |
 
 Install it like any normal app. On Linux, make the AppImage executable
