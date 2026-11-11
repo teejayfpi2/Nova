@@ -69,50 +69,103 @@ then use its web tools to look up the LinkedIn profile for more.
 
 ## Quick start
 
+The easiest way to configure Nova is a `.env` file in the project root — it works
+the same on Windows, macOS and Linux, so you never need `export` or `set`. Copy
+the template and fill it in:
+
+```bash
+cp .env.example .env        # Windows: copy .env.example .env
+```
+
+```ini
+# .env
+NOVA_LLM_BASE_URL=https://api.openai.com/v1
+NOVA_LLM_API_KEY=sk-...
+NOVA_LLM_MODEL=gpt-4o-mini
+NOVA_AUTH_TOKEN=change-me-to-a-long-random-string
+```
+
+Nova reads this file automatically on startup. Values set in your shell still win,
+so you can override any line for one run without editing the file.
+
 ### 1. Install
 
 ```bash
 git clone <this repo> nova && cd nova
+
+# macOS / Linux
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-# recommended extras (local voice, desktop control)
+# Windows (PowerShell or cmd)
+py -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+Then, optionally, the extras that unlock local voice and laptop control:
+
+```bash
 pip install faster-whisper edge-tts pyautogui
 ```
 
 ### 2. Give it a brain (a language model)
 
 Nova speaks the OpenAI chat-completions API, so you can point it at almost
-anything. Pick one:
+anything. Set these in `.env` (see the template above). Pick one:
 
-```bash
+```ini
 # OpenAI
-export NOVA_LLM_BASE_URL=https://api.openai.com/v1
-export NOVA_LLM_API_KEY=sk-...
-export NOVA_LLM_MODEL=gpt-4o-mini
+NOVA_LLM_BASE_URL=https://api.openai.com/v1
+NOVA_LLM_API_KEY=sk-...
+NOVA_LLM_MODEL=gpt-4o-mini
 
 # or a fully local model with Ollama (no API key, nothing leaves your machine)
-ollama pull llama3.1
-export NOVA_LLM_BASE_URL=http://localhost:11434/v1
-export NOVA_LLM_MODEL=llama3.1
+#   ollama pull llama3.1
+NOVA_LLM_BASE_URL=http://localhost:11434/v1
+NOVA_LLM_MODEL=llama3.1
 
 # or Groq, Together, OpenRouter, LM Studio, vLLM, llama.cpp — any compatible URL
 ```
 
 ### 3. Run the server
 
+Generate a token and put it in `.env` as `NOVA_AUTH_TOKEN`, then start the server:
+
 ```bash
-export NOVA_AUTH_TOKEN=$(python3 -c "import secrets;print(secrets.token_urlsafe(24))")
+# macOS / Linux
 python -m assistant.cli serve
-# ->
-#   Nova is starting.
-#   On this computer:  http://localhost:8000
-#   On your phone:     http://192.168.1.42:8000
-#   Access token:      <the token above>
+
+# Windows
+py -m assistant.cli serve
 ```
 
-The banner prints exactly what to type into the phone and desktop apps. Open
-`http://<your-machine>:8000` on your laptop, and the same URL on your phone.
+If you'd rather set the token for one run instead of using `.env`:
+
+```bash
+# macOS / Linux
+export NOVA_AUTH_TOKEN=$(python3 -c "import secrets;print(secrets.token_urlsafe(24))")
+python -m assistant.cli serve
+
+# Windows PowerShell
+$env:NOVA_AUTH_TOKEN = -join ((1..32) | ForEach-Object { '{0:x}' -f (Get-Random -Max 16) })
+py -m assistant.cli serve
+
+# Windows cmd
+set NOVA_AUTH_TOKEN=change-me-to-a-long-random-string
+py -m assistant.cli serve
+```
+
+Either way the banner prints exactly what to type into the phone and desktop apps:
+
+```
+  Nova is starting.
+  On this computer:  http://localhost:8000
+  On your phone:     http://192.168.1.42:8000
+  Access token:      <your token>
+```
+
+Open `http://<your-machine>:8000` on your laptop, and the same URL on your phone.
 
 The **server URL** is your computer's address on the network — the phone and
 computer must be on the same Wi-Fi. Don't use `localhost`/`127.0.0.1` in the app:

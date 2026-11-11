@@ -8,6 +8,36 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+
+
+def _load_dotenv() -> None:
+    """Read KEY=VALUE lines from ``.env`` in the project root into the environment.
+
+    Real environment variables win, so ``NOVA_PORT=9000`` set in the shell still
+    overrides the file. This gives Windows users the same convenience as the
+    ``export`` lines in the README, without needing shell-specific syntax.
+    """
+    env_file = ROOT / ".env"
+    if not env_file.is_file():
+        return
+    for raw in env_file.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[len("export ") :].strip()
+        key, sep, value = line.partition("=")
+        if not sep:
+            continue
+        key, value = key.strip(), value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+            value = value[1:-1]
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+_load_dotenv()
+
 DATA_DIR = Path(os.environ.get("NOVA_DATA_DIR", ROOT / "data"))
 
 

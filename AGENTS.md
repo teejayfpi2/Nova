@@ -70,6 +70,10 @@ does the same for the desktop installers across Linux, Windows and macOS.
 - Android and desktop sources are **generated** by the `gen_*_sources.py` scripts.
   Edit the generator, not the generated files, then re-run it.
 - Keep dependencies in `requirements.txt` and `pyproject.toml` in sync.
+- Configuration is env-first: `assistant/config.py` loads `.env` from the project
+  root (KEY=VALUE, `#` comments, optional quotes and a leading `export `), then
+  reads `os.environ`. Real env vars win over the file, so a one-off shell override
+  needs no edit. Keep `.env` gitignored; document new keys in `.env.example`.
 
 ## Gotchas
 
