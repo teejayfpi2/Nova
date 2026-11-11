@@ -26,6 +26,8 @@ import urllib.request
 from dataclasses import dataclass, field
 from typing import Any
 
+from .llm import USER_AGENT
+
 
 class OpenHandsError(RuntimeError):
     pass
@@ -97,6 +99,7 @@ class OpenHandsClient:
             headers={
                 "X-Session-API-Key": self.session_key,
                 "Content-Type": "application/json",
+                "User-Agent": USER_AGENT,
             },
         )
         try:

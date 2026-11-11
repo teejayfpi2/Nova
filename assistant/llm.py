@@ -21,6 +21,10 @@ from typing import Any
 
 from .config import settings
 
+# Some providers sit behind a CDN that rejects the default Python urllib
+# User-Agent with a 403 (Cloudflare error 1010). Identify ourselves instead.
+USER_AGENT = "Nova-Assistant/1.0 (+https://github.com/teejayfpi2/Nova)"
+
 
 class LLMError(RuntimeError):
     pass
@@ -123,7 +127,7 @@ class LLMClient:
     def _post(self, path: str, body: dict[str, Any]) -> dict[str, Any]:
         url = f"{self.base_url}{path}"
         data = json.dumps(body).encode()
-        headers = {"Content-Type": "application/json"}
+        headers = {"Content-Type": "application/json", "User-Agent": USER_AGENT}
         headers.update(self.extra_headers)
         key = self._auth_key()
         if key and "Authorization" not in headers:

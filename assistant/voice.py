@@ -17,7 +17,7 @@ import tempfile
 from dataclasses import dataclass
 
 from .config import settings
-from .llm import LLMClient
+from .llm import LLMClient, USER_AGENT
 
 
 class VoiceError(RuntimeError):
@@ -135,6 +135,7 @@ class SpeechToText:
         headers = {
             "Content-Type": f"multipart/form-data; boundary={boundary}",
             "Authorization": f"Bearer {self.llm._auth_key()}",  # noqa: SLF001
+            "User-Agent": USER_AGENT,
         }
         req = urllib.request.Request(
             f"{self.llm.base_url}/audio/transcriptions", data=body, headers=headers
@@ -268,6 +269,7 @@ class TextToSpeech:
             headers={
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {self.llm._auth_key()}",  # noqa: SLF001
+                "User-Agent": USER_AGENT,
             },
         )
         try:

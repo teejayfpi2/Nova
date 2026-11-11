@@ -209,3 +209,31 @@ def test_llm_client_sends_extra_headers(monkeypatch):
     resp = client.chat([{"role": "user", "content": "hi"}])
     assert resp.content == "hi"
     assert captured["headers"].get("X-session-api-key") == "secret"
+
+
+def test_llm_client_sends_user_agent(monkeypatch):
+    # Groq sits behind Cloudflare, which answers the default urllib User-Agent
+    # with a 403 (error 1010). Without an explicit User-Agent every Groq request
+    # fails, so pin it down.
+    from assistant import llm as llm_mod
+
+    captured = {}
+
+    class FakeResp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self):
+            return b'{"choices":[{"message":{"content":"hi"}}]}'
+
+    def fake_urlopen(req, timeout=None):
+        captured["headers"] = dict(req.headers)
+        return FakeResp()
+
+    monkeypatch.setattr(llm_mod.urllib.request, "urlopen", fake_urlopen)
+    client = llm_mod.LLMClient(base_url="https://api.groq.com/openai/v1", api_key="k")
+    client.chat([{"role": "user", "content": "hi"}])
+    assert captured["headers"].get("User-agent") == llm_mod.USER_AGENT
