@@ -42,9 +42,14 @@ python -m assistant.cli chat                   # interactive
 python -m assistant.cli serve                  # run the server
 python scripts/fake_openai_server.py 9099 &    # stub model
 ./scripts/build_apk.sh                         # build the Android APK
+cd android && ./gradlew assembleDebug          # build the APK with the wrapper
 cd desktop && npm install && npm start         # run the desktop app
 cd desktop && npm run dist                     # build desktop installers
 ```
+
+CI: `.github/workflows/android.yml` builds the debug APK on pushes/PRs touching
+`android/**` (and on demand), uploads the `nova-debug-apk` artifact, and refreshes
+the rolling `latest` release on pushes to `main`.
 
 ## Conventions
 

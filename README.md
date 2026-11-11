@@ -103,6 +103,19 @@ A ready-to-install debug APK is built for you. Build it fresh any time with:
 # -> android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
+**Or let GitHub build it.** The `Build Android APK` workflow
+(`.github/workflows/android.yml`) runs on every push that touches `android/**`,
+on pull requests, and on demand from the Actions tab (**Run workflow**). Each run:
+
+- builds the debug APK on a clean Ubuntu runner,
+- uploads it as the **`nova-debug-apk`** artifact (download it from the run page), and
+- on a push to `main`, refreshes a rolling **`latest`** release you can install
+  straight from your phone at
+  `https://github.com/teejayfpi2/Nova/releases/download/latest/nova-android-debug.apk`.
+
+The Android project uses the committed Gradle wrapper, so the same
+`./gradlew assembleDebug` works locally and in CI.
+
 Then get it onto the phone, either way works:
 
 ```bash
