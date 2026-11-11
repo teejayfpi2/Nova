@@ -125,7 +125,13 @@ NOVA_LLM_MODEL=gpt-4o-mini
 NOVA_LLM_BASE_URL=http://localhost:11434/v1
 NOVA_LLM_MODEL=llama3.1
 
-# or Groq, Together, OpenRouter, LM Studio, vLLM, llama.cpp — any compatible URL
+# or Groq (free tier, very fast). Use a current model ID: the older
+# llama-3.3-70b-versatile is Enterprise-only now and returns model_not_found.
+NOVA_LLM_BASE_URL=https://api.groq.com/openai/v1
+NOVA_LLM_API_KEY=gsk_...
+NOVA_LLM_MODEL=openai/gpt-oss-120b
+
+# or Together, OpenRouter, LM Studio, vLLM, llama.cpp — any compatible URL
 ```
 
 ### 3. Run the server
