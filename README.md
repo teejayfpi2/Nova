@@ -354,8 +354,21 @@ scripts/
   `NOVA_OPENHANDS_SESSION_KEY`, and make sure the agent server is reachable.
 - **`delegate_task` times out** — the delegated job can take minutes; raise
   `NOVA_OPENHANDS_TIMEOUT` (seconds) or use `check_task` with the returned id.
+- **"App not installed"** — Android says this when a Nova is already on the phone
+  that was signed with a *different* key (e.g. an older download built before the
+  key was pinned). Uninstall the old Nova first, then install again:
+
+  ```bash
+  adb uninstall ai.nova.assistant      # or: Settings → Apps → Nova → Uninstall
+  adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+  ```
+
+  All builds now share one key (`android/nova-debug.keystore`), so this only
+  happens once when moving off an older build. After that, updates install over
+  the top.
 - **APK won't install** — allow "install from unknown sources" for your file
-  manager/browser, or use `adb install -r`. The debug APK is signed with the
-  standard Android debug key.
+  manager/browser, or use `adb install -r`. The APK is signed with the project's
+  own key (`android/nova-debug.keystore`, password `android`), not your machine's
+  auto-generated debug key — that is deliberate, so CI and local builds match.
 - **Desktop app shows "offline"** — open Settings in the app and check the server
   URL/token, then hit **Test connection**. The tray icon keeps it running.

@@ -11,14 +11,34 @@ android {
         applicationId = "ai.nova.assistant"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
+    }
+
+    // A fixed signing key so every build (local and CI) shares one signature.
+    // Without this, Gradle generates a fresh debug keystore per machine/run and
+    // Android rejects updates with "App not installed" (signature mismatch).
+    signingConfigs {
+        create("nova") {
+            val ks = rootProject.file("nova-debug.keystore")
+            if (ks.exists()) {
+                storeFile = ks
+                storePassword = "android"
+                keyAlias = "novadebug"
+                keyPassword = "android"
+            }
+        }
     }
 
     buildTypes {
+        getByName("debug") {
+            val nova = signingConfigs.getByName("nova")
+            if (nova.storeFile != null) signingConfig = nova
+        }
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("debug")
+            val nova = signingConfigs.getByName("nova")
+            signingConfig = if (nova.storeFile != null) nova else signingConfigs.getByName("debug")
         }
     }
 

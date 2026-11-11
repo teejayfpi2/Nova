@@ -87,5 +87,9 @@ jobs:
             Automatic debug build of the Nova Android app.
 
             Built from ${{ github.sha }} by GitHub Actions.
+
+            Signed with the project key, so updates install over the top. If you
+            have an older Nova from before the key was pinned, uninstall it once
+            first (`App not installed` means the signatures differ).
           files: nova-android-debug.apk
           prerelease: true

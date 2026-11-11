@@ -78,6 +78,12 @@ the rolling `latest` release on pushes to `main`.
 - Web search scrapes DuckDuckGo's **lite** endpoint (the html one serves an
   anti-bot page to plain clients) with a browser user agent.
 - `data/memory.db` is the whole long-term memory; it is gitignored.
+- The APK is signed with a **committed** keystore (`android/nova-debug.keystore`,
+  alias `novadebug`, store/key password `android`) via the `nova` signing config in
+  `android/app/build.gradle.kts`. Do not remove it: without a fixed key, Gradle
+  generates a fresh debug keystore per machine/CI run, every build gets a different
+  signature, and installing an update fails with "App not installed"
+  (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`). It is a throwaway debug key, not a secret.
 - The OpenHands agent-server `/v1/chat/completions` endpoint runs OpenHands' **own**
   agent and ignores a `tools` parameter. It is fine as Nova's *brain* (plain chat),
   but delegation must go through the conversations API (`assistant/openhands.py`),
