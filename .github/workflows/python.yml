@@ -1,0 +1,53 @@
+name: Test Python
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "assistant/**"
+      - "tests/**"
+      - "requirements.txt"
+      - "pyproject.toml"
+      - ".github/workflows/python.yml"
+  pull_request:
+    paths:
+      - "assistant/**"
+      - "tests/**"
+      - "requirements.txt"
+      - "pyproject.toml"
+      - ".github/workflows/python.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: python-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest httpx
+
+      - name: Compile every source file
+        run: python -m compileall -q assistant scripts
+
+      - name: Import the package
+        run: python -c "import assistant.agent, assistant.server, assistant.tools.builtin"
+
+      - name: Run the test suite
+        run: python -m pytest tests -q
