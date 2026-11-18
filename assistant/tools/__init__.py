@@ -168,3 +168,6 @@ def tool(
     if _func is not None:
         return decorate(_func)
     return decorate
+
+# Register Anna bridge tools
+from . import anna_bridge  # noqa: F401
