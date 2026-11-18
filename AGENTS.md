@@ -56,6 +56,9 @@ CI: `.github/workflows/android.yml` builds the debug APK on pushes/PRs touching
 `android/**` (and on demand), uploads the `nova-debug-apk` artifact, and refreshes
 the rolling `latest` release on pushes to `main`. `.github/workflows/desktop.yml`
 does the same for the desktop installers across Linux, Windows and macOS.
+`.github/workflows/python.yml` runs the Python suite (`compileall` + import sweep
++ `pytest`) on any change to `assistant/**`, `tests/**` or the dependency files —
+it is the gate that catches a module that cannot even be imported.
 
 ## Conventions
 
